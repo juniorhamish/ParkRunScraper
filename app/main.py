@@ -1,5 +1,6 @@
 import datetime
 import time
+from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright
 
@@ -16,7 +17,7 @@ if __name__ == "__main__":
         "SELECT last_scrape_time FROM public.last_scrape_metadata WHERE success = true ORDER BY last_scrape_time DESC LIMIT 1;"
     )
     last_scrape_time = cur.fetchone()[0]
-    print(f"Last scrape time: {last_scrape_time}")
+    print(f"Last scrape time: {last_scrape_time.astimezone(ZoneInfo('Europe/London'))}")
     all_parkrunners = set()
     success = True
     with sync_playwright() as playwright_context_manager:
@@ -55,7 +56,7 @@ if __name__ == "__main__":
         print([new_parkrunner[0] for new_parkrunner in new_parkrunners])
         cur.execute(
             "INSERT INTO public.last_scrape_metadata (last_scrape_time, new_parkrunners_count, success) VALUES (%s, %s, %s);",
-            (datetime.datetime.now(), len(new_parkrunners), success),
+            (datetime.datetime.now(tz=datetime.timezone.utc), len(new_parkrunners), success),
         )
         browser.close()
     conn.commit()
