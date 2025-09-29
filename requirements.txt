@@ -3,3 +3,5 @@ beautifulsoup4
 urllib3
 httpretty
 requests
+psycopg2-binary
+python-dotenv
