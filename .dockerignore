@@ -1,0 +1,12 @@
+.git
+__pycache__
+*.pyc
+tests/
+.env.local
+.github/
+.idea/
+.vscode/
+.pytest_cache/
+venv/
+.python-version
+.DS_Store
