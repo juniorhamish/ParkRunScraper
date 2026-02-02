@@ -68,3 +68,16 @@ class DBClient:
                 "INSERT INTO public.last_scrape_metadata (last_scrape_time, new_parkrunners_count, success) VALUES (%s, %s, %s);",
                 (now, new_parkrunners_count, success),
             )
+
+    def get_runners_missing_metadata(self, limit=100):
+        print(f"Fetching up to {limit} runners missing metadata...")
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT id FROM public.runners WHERE name IS NULL LIMIT %s;", (limit,))
+            runners = [row[0] for row in cur.fetchall()]
+        print(f"Found {len(runners)} runners.")
+        return runners
+
+    def update_runner_metadata(self, runner_id, name):
+        print(f"Updating metadata for runner {runner_id}: name={name}")
+        with self.conn.cursor() as cur:
+            cur.execute("UPDATE public.runners SET name = %s WHERE id = %s;", (name, runner_id))

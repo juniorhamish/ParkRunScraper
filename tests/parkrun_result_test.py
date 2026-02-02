@@ -4,7 +4,7 @@ import os
 from unittest.mock import patch, Mock
 import httpretty
 
-from app.parkrun_result import ParkrunResult
+from app.models.parkrun_result import ParkrunResult
 from app.utils.http_utils import create_session
 
 
@@ -55,6 +55,32 @@ class ParkrunResultTest(unittest.TestCase):
             "https://www.parkrun.com/results/consolidatedclub/?clubNum=1832&eventdate=2025-09-27"
         )
         self.assertTrue(parkrun_result.success)
+
+    @patch("requests.Session.get")
+    def test_parkrun_result_custom_club_id(self, mock_get):
+        mock_get.return_value = mock_response()
+        parkrun_result = ParkrunResult(
+            self.session, None, create_mock_context(), datetime.date(2025, 9, 27), club_id=999
+        )
+        parkrun_result.fetch_results()
+
+        mock_get.assert_called_with(
+            "https://www.parkrun.com/results/consolidatedclub/?clubNum=999&eventdate=2025-09-27"
+        )
+        self.assertTrue(parkrun_result.success)
+
+    @patch("requests.Session.get")
+    def test_parkrun_result_custom_club_name(self, mock_get):
+        # HTML with a custom club
+        html = "<html><body><table><tr><td>1</td><td>1</td><td><a href='/parkrunner/123'>Runner</a></td><td>Custom Club</td><td>00:20:00</td></tr></table></body></html>"
+        mock_get.return_value = Mock(status_code=200, text=html)
+
+        parkrun_result = ParkrunResult(
+            self.session, None, create_mock_context(), datetime.date(2025, 9, 27), club_name="Custom Club"
+        )
+        parkrun_result.fetch_results()
+
+        self.assertEqual(["123"], parkrun_result.runner_ids)
 
     @patch("requests.Session.get")
     def test_parkrun_result_single_parkrun_single_runner(self, mock_get):

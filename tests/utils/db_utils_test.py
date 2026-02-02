@@ -86,6 +86,24 @@ class DBClientTest(unittest.TestCase):
         )
         mock_cursor.__exit__.assert_called_once()
 
+    def test_get_runners_missing_metadata(self, mock_connect):
+        mock_cursor = create_mock_cursor()
+        mock_connect.return_value.cursor.return_value = mock_cursor
+        mock_cursor.fetchall.return_value = [["12345"], ["67890"]]
+        with DBClient() as db_client:
+            runners = db_client.get_runners_missing_metadata(limit=10)
+        mock_cursor.execute.assert_called_with("SELECT id FROM public.runners WHERE name IS NULL LIMIT %s;", (10,))
+        self.assertEqual(["12345", "67890"], runners)
+
+    def test_update_runner_metadata(self, mock_connect):
+        mock_cursor = create_mock_cursor()
+        mock_connect.return_value.cursor.return_value = mock_cursor
+        with DBClient() as db_client:
+            db_client.update_runner_metadata("12345", "John Doe")
+        mock_cursor.execute.assert_called_with(
+            "UPDATE public.runners SET name = %s WHERE id = %s;", ("John Doe", "12345")
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,8 +4,6 @@ from bs4 import BeautifulSoup
 
 from app.utils.http_utils import get_html_content
 
-base_url = "https://www.parkrun.com/results/consolidatedclub/?clubNum=1832&eventdate="
-
 
 class ParkrunResult:
     date: datetime.date
@@ -14,14 +12,16 @@ class ParkrunResult:
     runner_ids: list[str]
     url: str
 
-    def __init__(self, session, page, context, date):
+    def __init__(self, session, page, context, date, club_id=1832, club_name="Bellahouston Harriers"):
         self.session = session
         self.page = page
         self.context = context
         self.date = date
+        self.club_id = club_id
+        self.club_name = club_name
         self.runner_ids = []
         self.success = False
-        self.url = base_url + self.date.strftime("%Y-%m-%d")
+        self.url = f"https://www.parkrun.com/results/consolidatedclub/?clubNum={self.club_id}&eventdate={self.date.strftime('%Y-%m-%d')}"
 
     def fetch_results(self):
         html, success = get_html_content(self.url, self.session, self.page, self.context)
@@ -37,7 +37,7 @@ class ParkrunResult:
             for row in rows:
                 cells = row.find_all("td")
                 cell_values = [cell.text for cell in cells]
-                if any("Bellahouston Harriers" in cell for cell in cell_values):
+                if any(self.club_name in cell for cell in cell_values):
                     for cell in cells:
                         if cell.a and "parkrunner" in cell.a["href"]:
                             self.runner_ids.append(cell.a["href"].split("/")[-1])

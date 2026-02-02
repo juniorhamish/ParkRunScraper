@@ -1,6 +1,6 @@
 import unittest
 
-from app.parkrunner_result import ParkrunnerResult
+from app.models.parkrunner_result import ParkrunnerResult
 
 
 class ParkrunnerResultTest(unittest.TestCase):
