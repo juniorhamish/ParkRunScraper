@@ -19,7 +19,7 @@ RUN dnf install -y \
     dbus-libs \
     expat \
     libdrm \
-    libXkbcommon \
+    libxkbcommon \
     libxshmfence \
     nspr \
     nss \
