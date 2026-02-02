@@ -39,3 +39,22 @@ def init_playwright(playwright_context_manager):
         }
     )
     return browser, page, context
+
+def get_html_content(url, session, page, context):
+    try:
+        result = session.get(url)
+        html = result.text
+        if "JavaScript is disabled" in html:
+            print(f"Bot protection has prevented loading data for: {url}.")
+            page.goto(url, timeout=60000)
+            page.wait_for_load_state("networkidle")
+            html = page.content()
+            cookies = context.cookies()
+            for cookie in cookies:
+                session.cookies.set(cookie["name"], cookie["value"])
+        success = True
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to fetch results for: {url}. Error: {e}")
+        success = False
+        html = None
+    return html, success

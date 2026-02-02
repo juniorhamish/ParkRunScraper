@@ -2,6 +2,8 @@ import datetime
 import requests
 from bs4 import BeautifulSoup
 
+from app.utils.http_utils import get_html_content
+
 base_url = "https://www.parkrun.com/results/consolidatedclub/?clubNum=1832&eventdate="
 
 
@@ -12,28 +14,20 @@ class ParkrunResult:
     runner_ids: list[str]
     url: str
 
-    def __init__(self, session, page, date):
+    def __init__(self, session, page, context, date):
         self.session = session
         self.page = page
+        self.context = context
         self.date = date
         self.runner_ids = []
         self.success = False
         self.url = base_url + self.date.strftime("%Y-%m-%d")
 
     def fetch_results(self):
-        try:
-            result = self.session.get(self.url)
-            html = result.text
-            if "JavaScript is disabled" in html:
-                print(f"Bot protection has prevented loading data for: {self.date.strftime('%Y-%m-%d')}.")
-                self.page.goto(self.url, timeout=60000)
-                self.page.wait_for_load_state("networkidle")
-                html = self.page.content()
+        html, success = get_html_content(self.url, self.session, self.page, self.context)
+        if success:
             self.parse_results(html)
-            self.success = True
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to fetch results for date: {self.date.strftime('%Y-%m-%d')}. Error: {e}")
-            self.success = False
+        self.success = success
 
     def parse_results(self, html_content: str):
         soup = BeautifulSoup(html_content, "html.parser")

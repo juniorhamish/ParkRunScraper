@@ -1,3 +1,5 @@
+freezegun
+python-dateutil
 playwright
 beautifulsoup4
 urllib3
