@@ -42,3 +42,4 @@ jobs:
           ${{ steps.login-ecr-public.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        provenance: false
