@@ -97,6 +97,9 @@ def get_html_content(url, session, page, context):
                 pass
 
             html = page.content()
+            if any(signal in html for signal in bot_signals):
+                print(f"Bot protection detected for: {url} even when using Playwright...sad")
+                return html, False
             cookies = context.cookies()
             for cookie in cookies:
                 session.cookies.set(cookie["name"], cookie["value"])
