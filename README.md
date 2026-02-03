@@ -59,32 +59,66 @@ COPY app/ ./app/
 CMD ["app.handlers.populate_runners.lambda_handler"]
 ```
 
-### 2. Push to Amazon ECR Public
+### 2. Push to Amazon ECR (Private)
 
-1.  Create a **Public** Amazon ECR repository.
-2.  Authenticate your Docker CLI to ECR Public:
+**Note**: AWS Lambda only supports container images from **Private** ECR repositories. It does not currently support ECR Public for Lambda functions.
+
+1.  Create a **Private** Amazon ECR repository in your preferred region.
+2.  Authenticate your Docker CLI to your registry:
     ```bash
-    aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/<your-alias>
+    aws ecr get-login-password --region <your-region> | docker login --username AWS --password-stdin <your-account-id>.dkr.ecr.<your-region>.amazonaws.com
     ```
 3.  Build and tag the image:
     ```bash
     docker build -t parkrun-scraper .
-    docker tag parkrun-scraper:latest public.ecr.aws/<your-alias>/parkrun-scraper:latest
+    docker tag parkrun-scraper:latest <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/parkrun-scraper:latest
     ```
 4.  Push to ECR:
     ```bash
-    docker push public.ecr.aws/<your-alias>/parkrun-scraper:latest
+    docker push <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/parkrun-scraper:latest
     ```
 
 ### 3. Deploy to AWS Lambda
 
-1.  **Create Function**: In the Lambda console, choose **Create function** -> **Container image**.
-2.  **Select Image**: Pick the image from your ECR repository.
-3.  **Configure Handlers**:
-    - For the "Populate" function, keep the default image CMD or set it to `app.handlers.populate_runners.lambda_handler`.
-    - For the "Update Metadata" function, create a second Lambda using the same image but override the **Command** in "Image configuration" to `app.handlers.update_metadata.lambda_handler`.
-4.  **Permissions**: Ensure the Lambda has network access to your PostgreSQL database (e.g., via VPC settings).
-5.  **Timeout**: Increase the timeout for both functions (e.g., 5-15 minutes) as scraping can take time.
+This project requires two separate Lambda functions. Both will use the **same Docker image** but will have different entry point configurations.
+
+#### Step A: Create the "Populate Runners" Function
+1.  Open the **AWS Lambda Console**.
+2.  Click **Create function**.
+3.  Select **Container image**.
+4.  **Function name**: `parkrun-populate-runners`.
+5.  **Container image URI**: Click **Browse ECR** and select your `parkrun-scraper` image with the `latest` tag.
+6.  Click **Create function**.
+
+#### Step B: Create the "Update Metadata" Function
+1.  Click **Create function** again.
+2.  Select **Container image**.
+3.  **Function name**: `parkrun-update-metadata`.
+4.  **Container image URI**: Select the **same** `latest` image used in Step A.
+5.  Expand **Container image overrides**.
+6.  In the **Command** field, enter: `app.handlers.update_metadata.lambda_handler` (this overrides the default CMD in the Dockerfile).
+7.  Click **Create function**.
+
+#### Step C: Common Configuration (Apply to BOTH functions)
+For each of the two functions created above, perform the following configuration:
+
+1.  **Environment Variables**:
+    - Go to the **Configuration** tab -> **Environment variables**.
+    - Click **Edit** and add:
+        - `DB_NAME`: Your database name.
+        - `DB_USER`: Your database username.
+        - `DB_PASSWORD`: Your database password.
+        - `DB_HOST`: Your database host address.
+        - `DB_PORT`: `5432`.
+        - `ENV`: `production`.
+2.  **General Configuration (Timeout & Memory)**:
+    - Go to the **Configuration** tab -> **General configuration**.
+    - Click **Edit**.
+    - **Memory**: Set to at least `1024 MB` (Playwright/Chromium are memory-intensive).
+    - **Timeout**: Set to `10 minutes` (600 seconds) or more. Scraping multiple pages takes time and can be hit by network delays.
+3.  **VPC / Network Access**:
+    - If your PostgreSQL database is in a VPC (e.g., RDS) and not publicly accessible, go to **Configuration** -> **VPC**.
+    - Click **Edit** and select the VPC, subnets, and security groups that allow the Lambda to reach your database.
 
 ## Scheduling (Daily Runs)
 
@@ -146,9 +180,9 @@ To enable the deployment workflow using OIDC (OpenID Connect), you need to confi
 
 1.  **IAM Role Configuration**:
     - Use the provided IAM role: `arn:aws:iam::522341695260:role/GitHubActionECRDeploy`.
-    - This role must have a Trust Policy that allows your GitHub repository to assume it via OIDC and should have the **`AmazonElasticContainerRegistryPublicFullAccess`** policy attached (Note: the standard `AmazonEC2ContainerRegistryPowerUser` only covers private registries and is insufficient for ECR Public).
+    - This role must have a Trust Policy that allows your GitHub repository to assume it via OIDC and should have the **`AmazonEC2ContainerRegistryPowerUser`** policy attached (Standard for private registries).
 
-### Troubleshooting IAM & ECR Public (403 Forbidden)
+### Troubleshooting IAM & ECR (403 Forbidden)
 
 If you encounter a `403 Forbidden` error during the push step, follow these steps in the AWS Console to verify your setup:
 
@@ -183,15 +217,14 @@ If you encounter a `403 Forbidden` error during the push step, follow these step
 
 #### 2. Verify Attached Policies
 1.  On the same Role page, click the **Permissions** tab.
-2.  Confirm that the **`AmazonElasticContainerRegistryPublicFullAccess`** policy is listed.
+2.  Confirm that the **`AmazonEC2ContainerRegistryPowerUser`** policy is listed.
 3.  If missing, click **Add permissions** > **Attach policies**, search for it, and click **Add permissions**.
-4.  **Note**: If you are using a custom policy instead of the recommended full access policy, ensure that any `Resource` ARNs in the policy are updated to match your current repository name.
+4.  **Note**: If you are using a custom policy instead of the recommended PowerUser policy, ensure that any `Resource` ARNs in the policy are updated to match your current repository name.
 
-#### 3. Confirm ECR Public Registry Alias
-1.  Navigate to **ECR** > **Public repositories**.
-2.  Locate your repository and note its URI. It should follow the format: `public.ecr.aws/<alias>/parkrun-scraper`.
-3.  The **`<alias>`** is often a random string (e.g., `d1f2m2x3`).
-4.  Ensure your GitHub Secret `ECR_REPOSITORY` is set to exactly `<alias>/parkrun-scraper`.
+#### 3. Confirm ECR Registry URI
+1.  Navigate to **ECR** > **Repositories**.
+2.  Locate your repository and note its URI. It should follow the format: `<account-id>.dkr.ecr.<region>.amazonaws.com/parkrun-scraper`.
+3.  Ensure your GitHub Secret `ECR_REPOSITORY` is set to exactly `parkrun-scraper` (or your chosen repository name).
 
 #### 4. Check for Token Issues
 If everything looks correct and it still fails, ensure your GitHub Actions workflow has `id-token: write` permissions (already included in this project's `deploy.yml`).
@@ -199,9 +232,9 @@ If everything looks correct and it still fails, ensure your GitHub Actions workf
 2.  **Configure GitHub Secrets**:
     - In your GitHub repository, go to **Settings** -> **Secrets and variables** -> **Actions**.
     - Add the following **Repository secrets**:
-        - `AWS_REGION`: Must be set to `us-east-1` (required for ECR Public authentication).
+        - `AWS_REGION`: The AWS region where your ECR repository and Lambda are located (e.g., `eu-west-1`).
         - `AWS_ROLE_TO_ASSUME`: The ARN of the IAM role to assume (e.g., `arn:aws:iam::522341695260:role/GitHubActionECRDeploy`).
-        - `ECR_REPOSITORY`: The name of your public ECR repository, including the alias (e.g., `v1a2b3c4/parkrun-scraper`).
+        - `ECR_REPOSITORY`: The name of your ECR repository (e.g., `parkrun-scraper`).
     - *Note: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are no longer required as we are using OIDC.*
 
 3.  **Automatic Deployment**:
