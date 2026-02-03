@@ -1,6 +1,7 @@
 freezegun
 python-dateutil
 playwright
+playwright-stealth
 beautifulsoup4
 urllib3
 httpretty

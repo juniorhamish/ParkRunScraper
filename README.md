@@ -291,3 +291,13 @@ If everything looks correct and it still fails, ensure your GitHub Actions workf
 2.  Create a `.env.local` file with DB credentials.
 3.  Run the main script: `python -m app.main`
 4.  Run tests: `python -m unittest discover tests -p '*_test.py'`
+
+## Bot Protection and Stealth
+
+This project includes measures to bypass bot protection (like AWS WAF) which often blocks traffic from cloud providers like AWS Lambda:
+
+- **Playwright Stealth**: Uses the `playwright-stealth` plugin to mask headless browser fingerprints.
+- **Consistent User-Agents**: Uses a modern, realistic User-Agent for both `requests` and Playwright.
+- **Hybrid Scraping**: Attempts a lightweight request first, falling back to a full browser only when blocked.
+- **Random Delays**: Includes small, human-like delays between requests (disabled during tests via `ENV=test`).
+- **Cookie Syncing**: Automatically transfers cookies from Playwright back to the `requests` session for efficiency.
