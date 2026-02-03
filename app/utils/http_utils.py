@@ -104,7 +104,7 @@ def get_html_content(url, session, page, context):
             for cookie in cookies:
                 session.cookies.set(cookie["name"], cookie["value"])
             print(
-                f"Successfully retrieved content with Playwright and updated session cookies for: {url} content is {html}"
+                f"Successfully retrieved content with Playwright and updated session cookies for: {url}"
             )
 
         success = True
