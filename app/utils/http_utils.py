@@ -54,11 +54,13 @@ def get_html_content(url, session, page, context):
     try:
         result = session.get(url)
         html = result.text
+        print(f"Fetched data for: {url}, got {html}")
         if "JavaScript is disabled" in html:
             print(f"Bot protection has prevented loading data for: {url}.")
             page.goto(url, timeout=60000)
             page.wait_for_load_state("networkidle")
             html = page.content()
+            print(f"Fell back to playwright for: {url}, got {html}")
             cookies = context.cookies()
             for cookie in cookies:
                 session.cookies.set(cookie["name"], cookie["value"])
