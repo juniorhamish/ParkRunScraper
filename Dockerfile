@@ -3,24 +3,29 @@ FROM public.ecr.aws/lambda/python:3.13
 # Install system dependencies for Playwright
 # These are required for Chromium to run in a headless environment on Amazon Linux 2023
 RUN dnf install -y \
-    mesa-libgbm \
-    libX11 \
-    libXcomposite \
-    libXdamage \
-    libXext \
-    libXfixes \
-    libXrandr \
-    libXrender \
-    libXtst \
-    alsa-lib \
+    atk \
     at-spi2-atk \
     at-spi2-core \
+    alsa-lib \
     cups-libs \
     dbus-libs \
     expat \
+    fontconfig \
     libdrm \
+    libX11 \
+    libXcomposite \
+    libXcursor \
+    libXdamage \
+    libXext \
+    libXfixes \
+    libXi \
+    libXrandr \
+    libXrender \
+    libXtst \
     libxkbcommon \
     libxshmfence \
+    mesa-libgbm \
+    gtk3 \
     nspr \
     nss \
     nss-util \

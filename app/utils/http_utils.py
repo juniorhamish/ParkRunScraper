@@ -30,7 +30,16 @@ def create_session(max_retries=3, backoff_factor=1):
 
 
 def init_playwright(playwright_context_manager):
-    browser = playwright_context_manager.chromium.launch(headless=True)
+    browser = playwright_context_manager.chromium.launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-zygote",
+        ],
+    )
     context = browser.new_context()
     page = context.new_page()
     page.set_extra_http_headers(
@@ -39,6 +48,7 @@ def init_playwright(playwright_context_manager):
         }
     )
     return browser, page, context
+
 
 def get_html_content(url, session, page, context):
     try:

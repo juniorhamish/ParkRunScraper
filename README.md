@@ -39,7 +39,35 @@ The project includes a `Dockerfile` optimized for AWS Lambda.
 FROM public.ecr.aws/lambda/python:3.13
 
 # Install system dependencies for Playwright
-RUN dnf install -y mesa-libgbm libX11 libXcomposite libXdamage libXext libXfixes libXrandr libXrender libXtst alsa-lib at-spi2-atk at-spi2-core cups-libs dbus-libs expat libdrm libxkbcommon libxshmfence nspr nss nss-util pango && dnf clean all
+RUN dnf install -y \
+    atk \
+    at-spi2-atk \
+    at-spi2-core \
+    alsa-lib \
+    cups-libs \
+    dbus-libs \
+    expat \
+    fontconfig \
+    libdrm \
+    libX11 \
+    libXcomposite \
+    libXcursor \
+    libXdamage \
+    libXext \
+    libXfixes \
+    libXi \
+    libXrandr \
+    libXrender \
+    libXtst \
+    libxkbcommon \
+    libxshmfence \
+    mesa-libgbm \
+    gtk3 \
+    nspr \
+    nss \
+    nss-util \
+    pango \
+    && dnf clean all
 
 # Set Playwright to install browsers in a specific location
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -114,7 +142,7 @@ For each of the two functions created above, perform the following configuration
 2.  **General Configuration (Timeout & Memory)**:
     - Go to the **Configuration** tab -> **General configuration**.
     - Click **Edit**.
-    - **Memory**: Set to at least `1024 MB` (Playwright/Chromium are memory-intensive).
+    - **Memory**: Set to at least `2048 MB` (Playwright/Chromium are memory-intensive, especially in a container).
     - **Timeout**: Set to `10 minutes` (600 seconds) or more. Scraping multiple pages takes time and can be hit by network delays.
 3.  **VPC / Network Access**:
     - If your PostgreSQL database is in a VPC (e.g., RDS) and not publicly accessible, go to **Configuration** -> **VPC**.
