@@ -40,6 +40,10 @@ def create_session(max_retries=3, backoff_factor=1):
 
 
 def init_playwright(playwright_context_manager):
+    # Use a more realistic viewport and add some variety
+    width = 1280 + random.randint(0, 100)
+    height = 720 + random.randint(0, 100)
+
     browser = playwright_context_manager.chromium.launch(
         headless=True,
         args=[
@@ -48,9 +52,21 @@ def init_playwright(playwright_context_manager):
             "--disable-dev-shm-usage",
             "--disable-gpu",
             "--no-zygote",
+            # This is a key flag to hide the automation control
+            "--disable-blink-features=AutomationControlled",
         ],
     )
-    context = browser.new_context(user_agent=COMMON_USER_AGENT, viewport={"width": 1920, "height": 1080})
+
+    # Parkrun is UK-based, so setting locale and timezone helps look more like a local user
+    context = browser.new_context(
+        user_agent=COMMON_USER_AGENT,
+        viewport={"width": width, "height": height},
+        device_scale_factor=random.choice([1, 1.25, 1.5]),
+        locale="en-GB",
+        timezone_id="Europe/London",
+        accept_downloads=False,
+    )
+
     # Apply stealth to the context
     Stealth().apply_stealth_sync(context)
 
@@ -83,23 +99,35 @@ def get_html_content(url, session, page, context):
 
             # Give it a bit of a "human" pause before trying Playwright
             if getenv("ENV") != "test":
-                time.sleep(random.uniform(2, 4))
+                time.sleep(random.uniform(2, 5))
 
-            page.goto(url, timeout=60000)
-            # Wait for content to load, sometimes networkidle is too fast for WAF challenges
+            page.goto(url, timeout=60000, wait_until="load")
+
+            # Wait for content to load
             page.wait_for_load_state("networkidle")
+
+            # Simulate some human activity to resolve potential behavioral challenges
+            if getenv("ENV") != "test":
+                time.sleep(random.uniform(1, 2))
+                page.mouse.move(random.randint(100, 700), random.randint(100, 500))
+                time.sleep(random.uniform(0.5, 1))
+                page.mouse.wheel(0, random.randint(300, 700))
+                time.sleep(random.uniform(1, 3))
 
             # Additional wait to ensure any challenge scripts have finished
             try:
-                page.wait_for_selector("table", timeout=10000)
+                # Parkrun results are in tables, and runner profiles have h2/h1 headers
+                page.wait_for_selector("table, h2, h1", timeout=15000)
             except Exception:
-                # If no table is found, it might be a page with no results, which is fine
                 pass
 
             html = page.content()
+
+            # Check if we are still blocked
             if any(signal in html for signal in bot_signals):
-                print(f"Bot protection detected for: {url} even when using Playwright...sad")
+                print(f"Bot protection STILL detected for: {url} even after Playwright. Possible IP block.")
                 return html, False
+
             cookies = context.cookies()
             for cookie in cookies:
                 session.cookies.set(cookie["name"], cookie["value"])

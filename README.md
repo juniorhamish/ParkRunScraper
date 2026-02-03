@@ -301,3 +301,20 @@ This project includes measures to bypass bot protection (like AWS WAF) which oft
 - **Hybrid Scraping**: Attempts a lightweight request first, falling back to a full browser only when blocked.
 - **Random Delays**: Includes small, human-like delays between requests (disabled during tests via `ENV=test`).
 - **Cookie Syncing**: Automatically transfers cookies from Playwright back to the `requests` session for efficiency.
+
+## Troubleshooting Bot Protection in Lambda
+
+If your scraper works locally but fails in AWS Lambda with "Bot protection detected", it is usually due to one of the following:
+
+### 1. IP Reputation (Most Likely)
+AWS Lambda uses IP addresses belonging to AWS, which are often flagged by Web Application Firewalls (WAFs) as "Cloud Traffic". Some sites block cloud IPs entirely or subject them to much stricter challenges.
+- **Solution**: If the built-in stealth measures are not enough, you may need to use a **Proxy Service** (preferably residential or mobile) to route your traffic through a non-cloud IP address.
+
+### 2. Fingerprinting
+Headless browsers often have unique properties that identify them as bots. This project uses `playwright-stealth` and several manual overrides to hide these markers:
+- **`AutomationControlled`**: We disable the blink feature that sets `navigator.webdriver` to `true`.
+- **Viewport & Locale**: We use randomized viewports and set the locale/timezone to `en-GB`/`Europe/London` to match a typical UK-based Parkrun user.
+- **Behavioral Analysis**: The scraper performs small mouse movements and scrolls to mimic a human user, which helps bypass WAFs that look for "instant" page interaction.
+
+### 3. Shared Memory
+Chromium can crash or behave oddly in Lambda due to limited `/dev/shm`. We use `--disable-dev-shm-usage` to force it to use `/tmp` instead. Ensure your Lambda has at least **2048 MB** of memory for stability.

@@ -126,7 +126,9 @@ class ParkrunResultTest(unittest.TestCase):
 
         self.assertEqual(["2243726"], parkrun_result.runner_ids)
         mock_page.goto.assert_called_with(
-            "https://www.parkrun.com/results/consolidatedclub/?clubNum=1832&eventdate=2025-09-27", timeout=60000
+            "https://www.parkrun.com/results/consolidatedclub/?clubNum=1832&eventdate=2025-09-27",
+            timeout=60000,
+            wait_until="load",
         )
         mock_page.wait_for_load_state.assert_called_with("networkidle")
         self.session.cookies.set.assert_any_call("cookie1", "cookie1value")
