@@ -210,7 +210,20 @@ To enable the deployment workflow using OIDC (OpenID Connect), you need to confi
     - Use the provided IAM role: `arn:aws:iam::522341695260:role/GitHubActionECRDeploy`.
     - This role must have a Trust Policy that allows your GitHub repository to assume it via OIDC.
     - It should have the **`AmazonEC2ContainerRegistryPowerUser`** policy attached (Standard for private registries).
-    - It also needs permission to update Lambda function code. You should attach a custom policy with the **`lambda:UpdateFunctionCode`** action for your specific Lambda functions.
+    - It also needs permission to update and verify Lambda function code. You should attach a custom policy with the following actions:
+        - **`lambda:UpdateFunctionCode`**
+        - **`lambda:GetFunction`**
+        - **`lambda:GetFunctionConfiguration`**
+    - These permissions should be scoped to your specific Lambda functions for best security practices.
+
+2.  **Lambda Execution Role Permissions**:
+    - Each Lambda function has an **Execution Role** (configured under the **Configuration** -> **Permissions** tab).
+    - Because the functions use a container image from ECR, this execution role **must** have permission to pull the image.
+    - Attach the following permissions to the Lambda Execution Role:
+        - `ecr:BatchCheckLayerAvailability`
+        - `ecr:GetDownloadUrlForLayer`
+        - `ecr:BatchGetImage`
+    - Alternatively, you can attach the managed policy `AmazonEC2ContainerRegistryReadOnly` to the execution role.
 
 ### Troubleshooting IAM & ECR (403 Forbidden)
 
@@ -259,7 +272,7 @@ If you encounter a `403 Forbidden` error during the push step, follow these step
 #### 4. Check for Token Issues
 If everything looks correct and it still fails, ensure your GitHub Actions workflow has `id-token: write` permissions (already included in this project's `deploy.yml`).
 
-2.  **Configure GitHub Secrets**:
+3.  **Configure GitHub Secrets**:
     - In your GitHub repository, go to **Settings** -> **Secrets and variables** -> **Actions**.
     - Add the following **Repository secrets**:
         - `AWS_REGION`: The AWS region where your ECR repository and Lambda are located (e.g., `eu-west-1`).
@@ -269,7 +282,7 @@ If everything looks correct and it still fails, ensure your GitHub Actions workf
         - `LAMBDA_UPDATE_NAME`: The name of your "Update Metadata" Lambda function (e.g., `parkrun-update-metadata`).
     - *Note: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are no longer required as we are using OIDC.*
 
-3.  **Automatic Deployment**:
+4.  **Automatic Deployment**:
     Once these secrets are set, any push to the `main` branch will trigger the build and push process using a secure, short-lived OIDC token. You can monitor the progress in the **Actions** tab of your GitHub repository.
 
 ## Local Development

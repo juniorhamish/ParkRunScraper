@@ -46,3 +46,8 @@ jobs:
       run: |
         aws lambda update-function-code --function-name ${{ secrets.LAMBDA_POPULATE_NAME }} --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
         aws lambda update-function-code --function-name ${{ secrets.LAMBDA_UPDATE_NAME }} --image-uri ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+
+    - name: Wait for Lambda updates
+      run: |
+        aws lambda wait function-updated --function-name ${{ secrets.LAMBDA_POPULATE_NAME }}
+        aws lambda wait function-updated --function-name ${{ secrets.LAMBDA_UPDATE_NAME }}
