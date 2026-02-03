@@ -208,7 +208,9 @@ To enable the deployment workflow using OIDC (OpenID Connect), you need to confi
 
 1.  **IAM Role Configuration**:
     - Use the provided IAM role: `arn:aws:iam::522341695260:role/GitHubActionECRDeploy`.
-    - This role must have a Trust Policy that allows your GitHub repository to assume it via OIDC and should have the **`AmazonEC2ContainerRegistryPowerUser`** policy attached (Standard for private registries).
+    - This role must have a Trust Policy that allows your GitHub repository to assume it via OIDC.
+    - It should have the **`AmazonEC2ContainerRegistryPowerUser`** policy attached (Standard for private registries).
+    - It also needs permission to update Lambda function code. You should attach a custom policy with the **`lambda:UpdateFunctionCode`** action for your specific Lambda functions.
 
 ### Troubleshooting IAM & ECR (403 Forbidden)
 
@@ -263,6 +265,8 @@ If everything looks correct and it still fails, ensure your GitHub Actions workf
         - `AWS_REGION`: The AWS region where your ECR repository and Lambda are located (e.g., `eu-west-1`).
         - `AWS_ROLE_TO_ASSUME`: The ARN of the IAM role to assume (e.g., `arn:aws:iam::522341695260:role/GitHubActionECRDeploy`).
         - `ECR_REPOSITORY`: The name of your ECR repository (e.g., `parkrun-scraper`).
+        - `LAMBDA_POPULATE_NAME`: The name of your "Populate Runners" Lambda function (e.g., `parkrun-populate-runners`).
+        - `LAMBDA_UPDATE_NAME`: The name of your "Update Metadata" Lambda function (e.g., `parkrun-update-metadata`).
     - *Note: `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are no longer required as we are using OIDC.*
 
 3.  **Automatic Deployment**:
