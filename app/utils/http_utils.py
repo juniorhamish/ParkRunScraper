@@ -100,7 +100,9 @@ def get_html_content(url, session, page, context):
             cookies = context.cookies()
             for cookie in cookies:
                 session.cookies.set(cookie["name"], cookie["value"])
-            print(f"Successfully retrieved content with Playwright and updated session cookies for: {url}")
+            print(
+                f"Successfully retrieved content with Playwright and updated session cookies for: {url} content is {html}"
+            )
 
         success = True
     except requests.exceptions.RequestException as e:
